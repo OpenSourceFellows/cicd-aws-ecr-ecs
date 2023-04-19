@@ -14,8 +14,12 @@ name: cd
 jobs:
   deploy:
     runs-on: ubuntu-latest
+    permissions:
+      id-token: write
+      contents: read
+      
     steps:
-      - name: Checkout Code
+      - name: Checkout
         uses: actions/checkout@v3
 
       - name: Echo
@@ -23,12 +27,54 @@ jobs:
 
       # TODO:
       # Configure dynamic credentials to AWS, check out the action: aws-actions/configure-aws-credentials
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v2
+        with:
+          role-to-assume: ${{ secrets.ROLE_TO_ASSUME }}
+          aws-region: ${{ vars.AWS_REGION }}
 
       # Deploy the ECS cluster using the pre-build template (templates/cluster), check this action for inspiration: aws-actions/aws-cloudformation-github-deploy
-
+      - name: Deploy to ECS Cluster
+        id: deploy-ecs-stack
+        uses: aws-actions/aws-cloudformation-github-deploy@v1
+        with:
+          name: amplify-cluster
+          template: ./templates/cluster.yaml
+          parameter-overrides: >-  
+            ECSClusterName=${{ vars.ECS_CLUSTER_NAME }},
+            AppName=${{ vars.APP_NAME }},
+            VPCStackName=${{ vars.VPC_STACK_NAME }}
+  
       # Update ECS task definition with the new image id / tag, check this action for idea: aws-actions/amazon-ecs-render-task-definition
+      - name: Login to Amazon ECR
+        id: login-ecr
+        uses: aws-actions/amazon-ecr-login@v1
 
-      # Deploy the new ECS task based on the new ECS task definition, check this action for idea: aws-actions/amazon-ecs-deploy-task-definition
+      - name: Downloading Task Definition 
+        id: render-web-container
+        run: |
+          aws ecs describe-task-definition \
+           --task-definition ${{ vars.APP_NAME }}-task-definition-family \
+           --query taskDefinition > task-definition.json
+           
+      - name: Fill in new Amazon ID in Task Definition 
+        id: task-def
+        uses: aws-actions/amazon-ecs-render-task-definition@v1
+        with: 
+         task-definition: task-definition.json
+         container-name: ${{ vars.APP_NAME }}
+         image: "${{ steps.login-ecr.outputs.registry }}/${{ vars.ECR_REPO_NAME }}:${{ inputs.image-tag }}"
+         
+   # Deploy the new ECS task based on the new ECS task definition, check this action for idea: aws-actions/amazon-ecs-deploy-task-definition
+      - name: Deploy to Amazon ECS service
+        uses: aws-actions/amazon-ecs-deploy-task-definition@v1
+        with:
+         task-definition: ${{ steps.task-def.outputs.task-definition }}
+         service: ${{ env.ECS_SERVICE }}
+         cluster: ${{ env.ECS_CLUSTER }}
+         wait-for-service-stability: true
+
+      
 
       # Get the Amplify app URL via ECS service elastic load balancer , create summary output
 
