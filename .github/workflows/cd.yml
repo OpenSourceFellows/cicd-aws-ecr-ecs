@@ -39,7 +39,7 @@ jobs:
         uses: aws-actions/aws-cloudformation-github-deploy@v1
         with:
           name: amplify-cluster
-          template: ./templates/cluster.yml
+          template: ./templates/cluster.yaml
           parameter-overrides: >-  
             ECSClusterName=${{ vars.ECS_CLUSTER_NAME }},
             AppName=${{ vars.APP_NAME }},
