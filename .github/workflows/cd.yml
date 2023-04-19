@@ -14,8 +14,12 @@ name: cd
 jobs:
   deploy:
     runs-on: ubuntu-latest
+    permissions:
+      id-token: write
+      contents: read
+      
     steps:
-      - name: Checkout Code
+      - name: Checkout
         uses: actions/checkout@v3
 
       - name: Echo
