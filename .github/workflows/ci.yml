@@ -32,15 +32,10 @@ jobs:
 
       # Lint the CloudFormation template (templates/), check out the action: scottbrenner/cfn-lint-action
       # Perform static analysis against the CloudFormation template, check out the action: stelligent/cfn_nag@master
-      
-      
 
       - name: Login to Amazon ECR
         id: login-ecr
-        uses: aws-actions/amazon-ecr-login@v1# Build images
-        
-        
-          
+        uses: aws-actions/amazon-ecr-login@v1
 
       # Checkout Amplify Repo (we do this so that you can start to build the Amplify app from this repo)
       - name: Checkout Amplify Repo
