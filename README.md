@@ -1,4 +1,3 @@
-# Hack Pod April 19 2023
 
 ## Introduction
 
